@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Local configuration files
+build/
+.vscode/
