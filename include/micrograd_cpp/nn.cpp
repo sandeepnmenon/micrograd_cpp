@@ -19,6 +19,7 @@ namespace micrograd_cpp
 
     class Module
     {
+    public:
         void zero_grad()
         {
             for(VariablePtr param: parameters())
@@ -33,7 +34,7 @@ namespace micrograd_cpp
         }
     };
 
-    class Neuron: Module
+    class Neuron: public Module
     {
         vector<VariablePtr> _weights;
         VariablePtr _bias;
@@ -107,7 +108,7 @@ namespace micrograd_cpp
 
     };
 
-    class Layer: Module
+    class Layer: public Module
     {
         unsigned int nin;
         unsigned int nout;
@@ -157,7 +158,7 @@ namespace micrograd_cpp
         }
     };
 
-    class MLP: Module
+    class MLP: public Module
     {
         unsigned int nin;
         vector<unsigned int> nouts;

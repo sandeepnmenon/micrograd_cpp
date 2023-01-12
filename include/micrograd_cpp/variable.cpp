@@ -194,6 +194,11 @@ namespace micrograd_cpp
         return lhs + make_shared<Variable>(val);
     }
 
+    inline VariablePtr operator+(float val, VariablePtr rhs)
+    {
+        return make_shared<Variable>(val) + rhs;
+    }
+
     inline VariablePtr operator-(VariablePtr rhs)
     {
         return rhs * make_shared<Variable>(-1.0);
@@ -202,6 +207,16 @@ namespace micrograd_cpp
     inline VariablePtr operator-(VariablePtr lhs, VariablePtr rhs)
     {
         return lhs + (-rhs);
+    }
+
+    inline VariablePtr operator-(VariablePtr lhs, float val)
+    {
+        return lhs + (-make_shared<Variable>(val));
+    }
+
+    inline VariablePtr operator-(float val, VariablePtr rhs)
+    {
+        return make_shared<Variable>(val) + (-rhs);
     }
 
     inline VariablePtr operator/(VariablePtr lhs, VariablePtr rhs)
