@@ -1,3 +1,6 @@
+#ifndef __MICROGRAD_CPP_VARIABLE_CPP__
+#define __MICROGRAD_CPP_VARIABLE_CPP__
+
 #include <ostream>
 #include <algorithm>
 #include <cmath>
@@ -215,12 +218,12 @@ namespace micrograd_cpp
 
     template <typename T> inline VariablePtr<T> operator-(VariablePtr<T> lhs, T val)
     {
-        return lhs + (-make_shared<Variable>(val));
+        return lhs + (-make_shared<Variable<T>>(val));
     }
 
     template <typename T> inline VariablePtr<T> operator-(T val, VariablePtr<T> rhs)
     {
-        return make_shared<Variable>(val) + (-rhs);
+        return make_shared<Variable<T>>(val) + (-rhs);
     }
 
     template <typename T> inline VariablePtr<T> operator/(VariablePtr<T> lhs, VariablePtr<T> rhs)
@@ -230,11 +233,13 @@ namespace micrograd_cpp
 
     template <typename T> inline VariablePtr<T> operator/(VariablePtr<T> lhs, T val)
     {
-        return lhs / make_shared<Variable>(val);
+        return lhs / make_shared<Variable<T>>(val);
     }
 
     template <typename T> inline VariablePtr<T> operator/(T val, VariablePtr<T> rhs)
     {
-        return make_shared<Variable>(val) / rhs;
+        return make_shared<Variable<T>>(val) / rhs;
     }
 }
+
+#endif __MICROGRAD_CPP_VARIABLE_CPP__
