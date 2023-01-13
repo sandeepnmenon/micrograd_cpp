@@ -236,4 +236,4 @@ namespace micrograd_cpp
     };
 }
 
-#endif __MICROGRAD_CPP_NN_CPP__
+#endif

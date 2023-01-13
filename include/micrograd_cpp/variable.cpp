@@ -1,5 +1,5 @@
-#ifndef __MICROGRAD_CPP_VARIABLE_CPP__
-#define __MICROGRAD_CPP_VARIABLE_CPP__
+#ifndef __MICROGRAD_CPP_VARIABLE_CPP_
+#define __MICROGRAD_CPP_VARIABLE_CPP_
 
 #include <ostream>
 #include <algorithm>
@@ -98,6 +98,11 @@ namespace micrograd_cpp
             this->op = op;
             this->_label = label;
             this->_backward = []() {};
+        }
+
+        static VariablePtr<T> makeVariable(T data)
+        {
+            return make_shared<Variable<T>>(data);
         }
 
         // function to print label when printing the object using cout
@@ -242,4 +247,4 @@ namespace micrograd_cpp
     }
 }
 
-#endif __MICROGRAD_CPP_VARIABLE_CPP__
+#endif
