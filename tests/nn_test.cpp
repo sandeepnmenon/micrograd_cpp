@@ -6,41 +6,43 @@
 using namespace std;
 using namespace micrograd_cpp;
 
-vector<VariablePtr> convert_to_variable(vector<float> x)
+template <typename T>
+vector<VariablePtr<T>> convert_to_variable(vector<T> x)
 {
-    vector<VariablePtr> variables = vector<VariablePtr>{};
-    for (auto i : x)
+    vector<VariablePtr<T>> variables = vector<VariablePtr<T>>{};
+    for (T i : x)
     {
-        variables.emplace_back(make_shared<Variable>(i));
+        variables.emplace_back(Variable<T>::makeVariable(i));
     }
 
     return variables;
 }
 
-void train(MLP model)
+template <typename T>
+void train(MLP<T> model)
 {
     // // Entire Training loop
-    vector<vector<float>> xs = {
+    vector<vector<T>> xs = {
         {2,3,-1},
         {3,-1,0.5},
         {0.5,1,1},
         {1,1,-1}
     };
-    vector<float> ys = {1,-1,-1,1};
+    vector<T> ys = {1,-1,-1,1};
 
     float step_size = 0.05;
     for(int k=0;k<100;++k)
     {
         //forward pass
-        vector<vector<VariablePtr>> ypred = vector<vector<VariablePtr>>();
+        vector<vector<VariablePtr<T>>> ypred = vector<vector<VariablePtr<T>>>();
         for (vector<float> x : xs)
         {
-            vector<VariablePtr> vx = convert_to_variable(x);
+            vector<VariablePtr<T>> vx = convert_to_variable<T>(x);
             ypred.emplace_back(model(vx));
         }
 
         //compute loss
-        VariablePtr loss = make_shared<Variable>(0.0f);
+        VariablePtr<T> loss = Variable<T>::makeVariable(0.0f);
         for(int i = 0; i < ypred.size(); ++i)
         {
             loss = loss + (ypred[i][0] - ys[i]) * (ypred[i][0] - ys[i]);
@@ -64,12 +66,12 @@ void train(MLP model)
 
 int main(int, char**) {
     std::cout << "Hello, world!\n";
-    vector<VariablePtr> x = convert_to_variable(vector<float>{3,1,5});
-    auto n = Neuron(3);
+    vector<VariablePtr<float>> x = convert_to_variable<float>(vector<float>{3,1,5});
+    auto n = Neuron<float>(3);
     cout<<n<<" => "<<*n(x)<<endl;
 
-    auto layer = Layer(3, 3);
-    vector<VariablePtr> output = layer(x);
+    auto layer = Layer<float>(3, 3);
+    vector<VariablePtr<float>> output = layer(x);
 
     for (auto out : output)
     {
@@ -77,10 +79,10 @@ int main(int, char**) {
     }
     
     //Define the model
-    MLP mlp = MLP(3, {4, 4, 1});
+    MLP<float> mlp = MLP<float>(3, {4, 4, 1});
     cout<<mlp<<" with parameters: "<<mlp.parameters().size()<<endl;
 
-    train(mlp);
+    train<float>(mlp);
 
     return 0;
 }

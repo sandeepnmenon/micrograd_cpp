@@ -1,3 +1,6 @@
+#ifndef __MICROGRAD_CPP_VARIABLE_CPP_
+#define __MICROGRAD_CPP_VARIABLE_CPP_
+
 #include <ostream>
 #include <algorithm>
 #include <cmath>
@@ -10,27 +13,31 @@ using namespace std;
 
 namespace micrograd_cpp
 {
+    template <typename T> 
     class Variable;
-    using VariablePtr = shared_ptr<Variable>;
 
-    class Variable : public enable_shared_from_this<Variable>
+    template <typename T> 
+    using VariablePtr = shared_ptr<Variable<T>>;
+
+    template <typename T> 
+    class Variable :public enable_shared_from_this<Variable<T>>
     {
-        float _data;
-        vector<VariablePtr> _prev;
+        T _data;
+        vector<VariablePtr<T>> _prev;
         string op;
         string _label;
         bool topo_visited = false;
 
-        const vector<VariablePtr> &children() const { return _prev; }
+        const vector<VariablePtr<T>> &children() const { return _prev; }
         void set_visited() { topo_visited = true; }
 
         // Overload the + operator
-        VariablePtr operator+(const VariablePtr other)
+        VariablePtr<T> operator+(const VariablePtr<T> other)
         {
-            VariablePtr self = shared_from_this();
-            vector<VariablePtr> children = vector<VariablePtr>{self, other};
+            VariablePtr<T> self = enable_shared_from_this<Variable<T>>::shared_from_this();
+            vector<VariablePtr<T>> children = vector<VariablePtr<T>>{self, other};
 
-            VariablePtr out = make_shared<Variable>(self->data() + other->data(), children, "+");
+            VariablePtr<T> out = make_shared<Variable>(self->data() + other->data(), children, "+");
             out->_backward = [out, other, self]()
             {
                 self->grad += 1.0 * out->grad;
@@ -41,10 +48,10 @@ namespace micrograd_cpp
         }
 
         // Overload the * operator
-        VariablePtr operator*(const VariablePtr &other)
+        VariablePtr<T> operator*(const VariablePtr<T> &other)
         {
-            VariablePtr out = make_shared<Variable>(this->data() * other->data(), vector<VariablePtr>{shared_from_this(), other}, "*");
-            out->_backward = [out, other, self = shared_from_this()]()
+            VariablePtr<T> out = make_shared<Variable>(this->data() * other->data(), vector<VariablePtr<T>>{enable_shared_from_this<Variable<T>>::shared_from_this(), other}, "*");
+            out->_backward = [out, other, self = enable_shared_from_this<Variable<T>>::shared_from_this()]()
             {
                 self->grad += other->data() * out->grad;
                 other->grad += self->data() * out->grad;
@@ -53,12 +60,12 @@ namespace micrograd_cpp
             return out;
         }
 
-        void build_topo(VariablePtr var, vector<VariablePtr>& topo_order)
+        void build_topo(VariablePtr<T> var, vector<VariablePtr<T>>& topo_order)
         {
             if(!var->topo_visited)
             {
                 var->set_visited();
-                for(VariablePtr child: var->children())
+                for(VariablePtr<T> child: var->children())
                 {
                     build_topo(child, topo_order);
                 }
@@ -66,24 +73,24 @@ namespace micrograd_cpp
             }
         }
 
-        void clear_topo_visited(vector<VariablePtr>& topo_order)
+        void clear_topo_visited(vector<VariablePtr<T>>& topo_order)
         {
-            for(VariablePtr node: topo_order)
+            for(VariablePtr<T> node: topo_order)
             {
                 node->topo_visited = false;
             }
         }
 
     public:
-        float grad;
+        T grad;
         function<void()> _backward;
 
         void set_label(string label) { this->_label = label; }
-        float data() const { return _data; }
-        void set_data(float data) { this->_data = data; }
+        T data() const { return _data; }
+        void set_data(T data) { this->_data = data; }
 
         
-        Variable(float data, vector<VariablePtr> _children = vector<VariablePtr>(), string op = "", string label = "")
+        Variable(T data, vector<VariablePtr<T>> _children = vector<VariablePtr<T>>(), string op = "", string label = "")
         {
             this->_data = data;
             this->grad = 0.0;
@@ -91,6 +98,11 @@ namespace micrograd_cpp
             this->op = op;
             this->_label = label;
             this->_backward = []() {};
+        }
+
+        static VariablePtr<T> makeVariable(T data)
+        {
+            return make_shared<Variable<T>>(data);
         }
 
         // function to print label when printing the object using cout
@@ -101,10 +113,10 @@ namespace micrograd_cpp
         }
 
         // Define the pow operator
-        VariablePtr pow(float exponent)
+        VariablePtr<T> pow(float exponent)
         {
-            VariablePtr self = shared_from_this();
-            VariablePtr out = make_shared<Variable>(std::pow(this->data(), exponent), vector<VariablePtr>{self}, "^" + to_string(exponent));
+            VariablePtr<T> self = enable_shared_from_this<Variable<T>>::shared_from_this();
+            VariablePtr<T> out = make_shared<Variable>(std::pow(this->data(), exponent), vector<VariablePtr<T>>{self}, "^" + to_string(exponent));
             out->_backward = [out, exponent, self]()
             {
                 self->grad += exponent * std::pow(self->data(), exponent - 1) * out->grad;
@@ -117,10 +129,10 @@ namespace micrograd_cpp
         void backward()
         {
             this->grad = 1.0;
-            vector<VariablePtr> topo_order;
-            build_topo(shared_from_this(), topo_order);
+            vector<VariablePtr<T>> topo_order;
+            build_topo(enable_shared_from_this<Variable<T>>::shared_from_this(), topo_order);
             reverse(topo_order.begin(), topo_order.end());
-            for(VariablePtr node: topo_order)
+            for(VariablePtr<T> node: topo_order)
             {
                 node->_backward();
             }
@@ -128,12 +140,12 @@ namespace micrograd_cpp
         }
 
         // Define the tanh function
-        VariablePtr tanh()
+        VariablePtr<T> tanh()
         {
-            float n = this->data();
-            float tanh_value = (exp(2 * n) - 1) / (exp(2 * n) + 1);
-            VariablePtr out = make_shared<Variable>(tanh_value, vector<VariablePtr>{shared_from_this()}, "tanh");
-            out->_backward = [out, self = shared_from_this()]()
+            T n = this->data();
+            T tanh_value = (exp(2 * n) - 1) / (exp(2 * n) + 1);
+            VariablePtr<T> out = make_shared<Variable>(tanh_value, vector<VariablePtr<T>>{enable_shared_from_this<Variable<T>>::shared_from_this()}, "tanh");
+            out->_backward = [out, self = enable_shared_from_this<Variable<T>>::shared_from_this()]()
             {
                 self->grad += (1 - out->data() * out->data()) * out->grad;
             };
@@ -142,12 +154,12 @@ namespace micrograd_cpp
         }
 
         // Define the relu function
-        VariablePtr relu()
+        VariablePtr<T> relu()
         {
-            float n = this->data();
-            float relu_value = n > 0 ? n : 0;
-            VariablePtr out = make_shared<Variable>(relu_value, vector<VariablePtr>{shared_from_this()}, "relu");
-            out->_backward = [out, self = shared_from_this()]()
+            T n = this->data();
+            T relu_value = n > 0 ? n : 0;
+            VariablePtr<T> out = make_shared<Variable>(relu_value, vector<VariablePtr<T>>{enable_shared_from_this<Variable<T>>::shared_from_this()}, "relu");
+            out->_backward = [out, self = enable_shared_from_this<Variable<T>>::shared_from_this()]()
             {
                 self->grad += (out->data() > 0 ? 1 : 0) * out->grad;
             };
@@ -156,9 +168,9 @@ namespace micrograd_cpp
         }
     };
 
-    inline VariablePtr operator*(VariablePtr lhs, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator*(VariablePtr<T> lhs, VariablePtr<T> rhs)
     {
-        VariablePtr out = make_shared<Variable>(lhs->data() * rhs->data(), vector<VariablePtr>{lhs, rhs}, "*");
+        VariablePtr<T> out = make_shared<Variable<T>>(lhs->data() * rhs->data(), vector<VariablePtr<T>>{lhs, rhs}, "*");
         out->_backward = [out, lhs, rhs]()
         {
             lhs->grad += rhs->data() * out->grad;
@@ -168,19 +180,19 @@ namespace micrograd_cpp
         return out;
     }
 
-    inline VariablePtr operator*(VariablePtr lhs, float val)
+    template <typename T> inline VariablePtr<T> operator*(VariablePtr<T> lhs, T val)
     {
         return lhs * make_shared<Variable>(val);
     }
 
-    inline VariablePtr operator*(float val, VariablePtr rhs)
-    {
-        return make_shared<Variable>(val) * rhs;
-    }
+    // template <typename T> inline VariablePtr<T> operator*(T val, VariablePtr<T> rhs)
+    // {
+    //     return make_shared<Variable>(val) * rhs;
+    // }
 
-    inline VariablePtr operator+(VariablePtr lhs, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator+(VariablePtr<T> lhs, VariablePtr<T> rhs)
     {
-        VariablePtr out = make_shared<Variable>(lhs->data() + rhs->data(), vector<VariablePtr>{lhs, rhs}, "+");
+        VariablePtr<T> out = make_shared<Variable<T>>(lhs->data() + rhs->data(), vector<VariablePtr<T>>{lhs, rhs}, "+");
         out->_backward = [out, lhs, rhs]()
         {
             lhs->grad += out->grad;
@@ -189,48 +201,50 @@ namespace micrograd_cpp
         return out;
     }
 
-    inline VariablePtr operator+(VariablePtr lhs, float val)
+    template <typename T> inline VariablePtr<T> operator+(VariablePtr<T> lhs, T val)
     {
         return lhs + make_shared<Variable>(val);
     }
 
-    inline VariablePtr operator+(float val, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator+(T val, VariablePtr<T> rhs)
     {
         return make_shared<Variable>(val) + rhs;
     }
 
-    inline VariablePtr operator-(VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator-(VariablePtr<T> rhs)
     {
-        return rhs * make_shared<Variable>(-1.0);
+        return rhs * make_shared<Variable<T>>(-1.0);
     }
 
-    inline VariablePtr operator-(VariablePtr lhs, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator-(VariablePtr<T> lhs, VariablePtr<T> rhs)
     {
         return lhs + (-rhs);
     }
 
-    inline VariablePtr operator-(VariablePtr lhs, float val)
+    template <typename T> inline VariablePtr<T> operator-(VariablePtr<T> lhs, T val)
     {
-        return lhs + (-make_shared<Variable>(val));
+        return lhs + (-make_shared<Variable<T>>(val));
     }
 
-    inline VariablePtr operator-(float val, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator-(T val, VariablePtr<T> rhs)
     {
-        return make_shared<Variable>(val) + (-rhs);
+        return make_shared<Variable<T>>(val) + (-rhs);
     }
 
-    inline VariablePtr operator/(VariablePtr lhs, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator/(VariablePtr<T> lhs, VariablePtr<T> rhs)
     {
         return lhs * rhs->pow(-1);
     }
 
-    inline VariablePtr operator/(VariablePtr lhs, float val)
+    template <typename T> inline VariablePtr<T> operator/(VariablePtr<T> lhs, T val)
     {
-        return lhs / make_shared<Variable>(val);
+        return lhs / make_shared<Variable<T>>(val);
     }
 
-    inline VariablePtr operator/(float val, VariablePtr rhs)
+    template <typename T> inline VariablePtr<T> operator/(T val, VariablePtr<T> rhs)
     {
-        return make_shared<Variable>(val) / rhs;
+        return make_shared<Variable<T>>(val) / rhs;
     }
 }
+
+#endif

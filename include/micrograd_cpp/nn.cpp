@@ -1,3 +1,7 @@
+#ifndef __MICROGRAD_CPP_NN_CPP__
+#define __MICROGRAD_CPP_NN_CPP__
+
+
 #include <random>
 #include <vector>
 #include <string>
@@ -17,27 +21,29 @@ namespace micrograd_cpp
     
     static std::unordered_map<std::string,Activation> const activation_table = { {"tanh",Activation::TANH}, {"relu",Activation::RELU} };
 
+    template <typename T> 
     class Module
     {
     public:
         void zero_grad()
         {
-            for(VariablePtr param: parameters())
+            for(VariablePtr<T> param: parameters())
             {
                 param->grad = 0.0f;
             }
         }
 
-        vector<VariablePtr> parameters()
+        vector<VariablePtr<T>> parameters()
         {
-            return vector<VariablePtr>{};
+            return vector<VariablePtr<T>>{};
         }
     };
 
-    class Neuron: public Module
+    template <typename T> 
+    class Neuron: public Module<T>
     {
-        vector<VariablePtr> _weights;
-        VariablePtr _bias;
+        vector<VariablePtr<T>> _weights;
+        VariablePtr<T> _bias;
         Activation _activation;
         string activation_name;
 
@@ -51,7 +57,7 @@ namespace micrograd_cpp
 
             for(unsigned int i = 0; i < nin; i++)
             {
-                this->_weights.emplace_back(make_shared<Variable>(distr(gen)));
+                this->_weights.emplace_back(make_shared<Variable<T>>(distr(gen)));
             }
 
         }
@@ -61,8 +67,8 @@ namespace micrograd_cpp
         {
             this->_activation = activation_table.at(activation);
             this->activation_name = activation;
-            this->_weights = vector<VariablePtr>{};
-            this->_bias = make_shared<Variable>(0.0f);
+            this->_weights = vector<VariablePtr<T>>{};
+            this->_bias = make_shared<Variable<T>>(0.0f);
             
             initialize_weights_uniform(nin);
         }
@@ -73,7 +79,7 @@ namespace micrograd_cpp
             return os;
         }
 
-        VariablePtr operator()(vector<VariablePtr> x)
+        VariablePtr<T> operator()(vector<VariablePtr<T>> x)
         {
             auto activation = this->_bias;
             for(unsigned int i = 0; i < x.size(); i++)
@@ -98,9 +104,9 @@ namespace micrograd_cpp
             return activation;
         }
 
-        vector<VariablePtr> parameters()
+        vector<VariablePtr<T>> parameters()
         {
-            vector<VariablePtr> parameters = this->_weights;
+            vector<VariablePtr<T>> parameters = this->_weights;
             parameters.emplace_back(this->_bias);
 
             return parameters;
@@ -108,27 +114,28 @@ namespace micrograd_cpp
 
     };
 
-    class Layer: public Module
+    template <typename T> 
+    class Layer: public Module<T>
     {
         unsigned int nin;
         unsigned int nout;
-        vector<Neuron> _neurons;
+        vector<Neuron<T>> _neurons;
 
     public:
         Layer(unsigned int nin, unsigned int nout, string activation="tanh")
         {
             this->nin = nin;
             this->nout = nout;
-            this->_neurons = vector<Neuron>{};
+            this->_neurons = vector<Neuron<T>>{};
             for(unsigned int i = 0; i < nout; i++)
             {
-                this->_neurons.emplace_back(Neuron(nin, activation));
+                this->_neurons.emplace_back(Neuron<T>(nin, activation));
             }
         }
 
-        vector<VariablePtr> operator()(vector<VariablePtr> x)
+        vector<VariablePtr<T>> operator()(vector<VariablePtr<T>> x)
         {
-            vector<VariablePtr> layer_output = vector<VariablePtr>{};
+            vector<VariablePtr<T>> layer_output = vector<VariablePtr<T>>{};
             for(Neuron neuron: this->_neurons)
             {
                 layer_output.emplace_back(neuron(x));
@@ -137,12 +144,12 @@ namespace micrograd_cpp
             return layer_output;
         }
 
-        vector<VariablePtr> parameters()
+        vector<VariablePtr<T>> parameters()
         {
-            vector<VariablePtr> parameters = vector<VariablePtr>{};
+            vector<VariablePtr<T>> parameters = vector<VariablePtr<T>>{};
             for(Neuron neuron: this->_neurons)
             {
-                for(VariablePtr param: neuron.parameters())
+                for(VariablePtr<T> param: neuron.parameters())
                 {
                     parameters.emplace_back(param);
                 }
@@ -158,11 +165,12 @@ namespace micrograd_cpp
         }
     };
 
-    class MLP: public Module
+    template <typename T> 
+    class MLP: public Module<T>
     {
         unsigned int nin;
         vector<unsigned int> nouts;
-        vector<Layer> _layers;
+        vector<Layer<T>> _layers;
 
     public:
         MLP(unsigned int nin, vector<unsigned int> nouts, vector<string> activations=vector<string>{})
@@ -177,18 +185,18 @@ namespace micrograd_cpp
             }
             this->nin = nin;
             this->nouts = nouts;
-            this->_layers = vector<Layer>{};
+            this->_layers = vector<Layer<T>>{};
             vector<unsigned int> layer_sizes = vector<unsigned int>{nin};
             layer_sizes.insert(layer_sizes.end(), nouts.begin(), nouts.end());
             for(unsigned int i = 0; i < nouts.size(); i++)
             {
-                this->_layers.emplace_back(Layer(layer_sizes[i], layer_sizes[i+1], activations[i]));
+                this->_layers.emplace_back(Layer<T>(layer_sizes[i], layer_sizes[i+1], activations[i]));
             }
         }
 
-        vector<VariablePtr> operator()(vector<VariablePtr> x)
+        vector<VariablePtr<T>> operator()(vector<VariablePtr<T>> x)
         {
-            vector<VariablePtr> layer_output = x;
+            vector<VariablePtr<T>> layer_output = x;
             for(Layer layer: this->_layers)
             {
                 layer_output = layer(layer_output);
@@ -197,12 +205,12 @@ namespace micrograd_cpp
             return layer_output;
         }
 
-        vector<VariablePtr> parameters()
+        vector<VariablePtr<T>> parameters()
         {
-            vector<VariablePtr> parameters = vector<VariablePtr>{};
+            vector<VariablePtr<T>> parameters = vector<VariablePtr<T>>{};
             for(Layer layer: this->_layers)
             {
-                for(VariablePtr param: layer.parameters())
+                for(VariablePtr<T> param: layer.parameters())
                 {
                     parameters.emplace_back(param);
                 }
@@ -227,3 +235,5 @@ namespace micrograd_cpp
         }
     };
 }
+
+#endif
