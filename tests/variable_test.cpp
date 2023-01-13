@@ -8,19 +8,19 @@ using namespace std;
 int main(int, char**) {
     std::cout << "Hello, world!\n";
     // Inputs x1 and x2
-    auto x1 = make_shared<micrograd_cpp::Variable>(2.0f);
+    auto x1 = make_shared<micrograd_cpp::Variable<float>>(2.0f);
     x1->set_label("x1");
-    auto x2 = make_shared<micrograd_cpp::Variable>(1.0f);
+    auto x2 = make_shared<micrograd_cpp::Variable<float>>(1.0f);
     x2->set_label("x2");
 
     // Two weights for each input
-    auto w1 = make_shared<micrograd_cpp::Variable>(-3.0f);
+    auto w1 = make_shared<micrograd_cpp::Variable<float>>(-3.0f);
     w1->set_label("w1");
-    auto w2 = make_shared<micrograd_cpp::Variable>(0.0f);
+    auto w2 = make_shared<micrograd_cpp::Variable<float>>(0.0f);
     w2->set_label("w2");
 
     // Bias
-    auto b = make_shared<micrograd_cpp::Variable>(8.0f);
+    auto b = make_shared<micrograd_cpp::Variable<float>>(8.0f);
     b->set_label("b");
 
     // Applying sum of inputs with weights
