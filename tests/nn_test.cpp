@@ -10,9 +10,9 @@ template <typename T>
 vector<VariablePtr<T>> convert_to_variable(vector<T> x)
 {
     vector<VariablePtr<T>> variables = vector<VariablePtr<T>>{};
-    for (auto i : x)
+    for (T i : x)
     {
-        variables.emplace_back(make_shared<Variable<T>>(i));
+        variables.emplace_back(Variable<T>::makeVariable(i));
     }
 
     return variables;
@@ -42,7 +42,7 @@ void train(MLP<T> model)
         }
 
         //compute loss
-        VariablePtr<T> loss = make_shared<Variable<T>>(0.0f);
+        VariablePtr<T> loss = Variable<T>::makeVariable(0.0f);
         for(int i = 0; i < ypred.size(); ++i)
         {
             loss = loss + (ypred[i][0] - ys[i]) * (ypred[i][0] - ys[i]);
